@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Abarrotes La Esquina</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!-- ========== AUTH ========== -->
+<section id="auth-section">
+  <div style="width:100%;max-width:420px;padding:16px;">
+    <div class="auth-logo">
+      <span>LA <span style="color:var(--accent2)">ESQUINA</span></span>
+      <small>Abarrotes — Control de Inventario</small>
+    </div>
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">Iniciar Sesión</button>
+        <button class="auth-tab" onclick="switchTab('register')">Registrarse</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="login-panel" class="auth-form">
+        <div class="form-group">
+          <label>Nombre de usuario</label>
+          <input type="text" id="l-nombre"/>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <div class="password-wrapper">
+            <input type="password" id="l-password" onkeydown="if(event.key==='Enter') doLogin()"/>
+            <button type="button" class="password-toggle" onclick="togglePassword('l-password', this)">Mostrar</button>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
+        <div style="margin-top:16px; text-align:center;">
+          <button type="button" class="btn-recover" onclick="doRecoverPassword()">Recuperar contraseña</button>
+        </div>
+        <div id="login-msg" class="auth-msg"></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="register-panel" class="auth-form" style="display:none">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input type="text" id="r-nombre"/>
+        </div>
+        <div class="form-group">
+          <label>Rol</label>
+          <select id="r-rol">
+            <option value="">— Selecciona un rol —</option>
+            <option value="empleado">Empleado</option>
+            <option value="proveedor">Proveedor</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="Editor">Editor</option>
+            <option value="Consultor">Consultor</option>
+            <option value="Administrador">Administrador</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <div class="password-wrapper">
+            <input type="password" id="r-password"/>
+            <button type="button" class="password-toggle" onclick="togglePassword('r-password', this)">Mostrar</button>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="doRegister()">CREAR CUENTA</button>
+        <div id="register-msg" class="auth-msg"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== APP ========== -->
+<section id="app-section">
+  <div class="topbar">
+    <div class="topbar-brand">LA <span>ESQUINA</span></div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="user-info">
+          <strong id="user-name-display">—</strong>
+          <small id="user-role-display">—</small>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="doLogout()">✕ Salir</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <h1 class="section-title">Panel de Control</h1>
+    <p class="section-sub">Selecciona un módulo para gestionar</p>
+    <div class="cards-grid" id="cards-grid"></div>
+  </div>
+</section>
+
+<!-- ========== MODAL PRODUCTOS ========== -->
+<div class="modal-overlay" id="modal-productos">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📦 PRODUCTOS</h2>
+      <button class="modal-close" onclick="closeModal('modal-productos')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-actions">
+        <button class="btn-add" onclick="toggleForm('form-producto')">+ Agregar Producto</button>
+      </div>
+      <div class="sub-form" id="form-producto">
+        <h4>Nuevo Producto</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Nombre</label><input type="text" id="p-nombre"/></div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="p-categoria">
+              <option>Granos y Cereales</option>
+              <option>Aceites y Grasas</option>
+              <option>Pastas y harinas</option>
+              <option>Enlatados y conservas</option>
+              <option>Panadería</option>
+              <option>Lácteos</option>
+              <option>Salchichonería y quesos</option>
+              <option>Huevo</option>
+              <option>Frutas y Verduras</option>
+              <option>Bebidas</option>
+              <option>Cervezas y Vinos</option>
+              <option>Limpieza y Cuidado del Hogar</option>
+              <option>Higiene y cuidado personal</option>
+              <option>Botanas y Confitería</option>
+              <option>Comida para mascotas</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Precio ($)</label><input type="number" id="p-precio" min="0" step="0.01"/></div>
+          <div class="form-group"><label>Stock inicial</label><input type="number" id="p-stock" min="0"/></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveProducto()">Guardar</button>
+          <button class="btn-cancel" onclick="toggleForm('form-producto')">Cancelar</button>
+        </div>
+      </div>
+      <!-- Form edición producto -->
+      <div class="sub-form" id="form-producto-edit">
+        <h4>Editar Producto</h4>
+        <input type="hidden" id="pe-id"/>
+        <div class="form-row">
+          <div class="form-group"><label>Nombre</label><input type="text" id="pe-nombre"/></div>
+          <div class="form-group">
+            <label>Categoría</label>
+            <select id="pe-categoria">
+              <option>Granos y Cereales</option>
+              <option>Aceites y Grasas</option>
+              <option>Pastas y harinas</option>
+              <option>Enlatados y conservas</option>
+              <option>Panadería</option>
+              <option>Lácteos</option>
+              <option>Salchichonería y quesos</option>
+              <option>Huevo</option>
+              <option>Frutas y Verduras</option>
+              <option>Bebidas</option>
+              <option>Cervezas y Vinos</option>
+              <option>Limpieza y Cuidado del Hogar</option>
+              <option>Higiene y cuidado personal</option>
+              <option>Botanas y Confitería</option>
+              <option>Comida para mascotas</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Precio ($)</label><input type="number" id="pe-precio" min="0" step="0.01"/></div>
+          <div class="form-group"><label>Stock</label><input type="number" id="pe-stock" min="0" disabled title="El stock se gestiona desde Compras y Ventas"/></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveProductoEdit()">Guardar cambios</button>
+          <button class="btn-cancel" onclick="document.getElementById('form-producto-edit').classList.remove('open')">Cancelar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-productos"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL PROVEEDORES ========== -->
+<div class="modal-overlay" id="modal-proveedores">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🚚 PROVEEDORES</h2>
+      <button class="modal-close" onclick="closeModal('modal-proveedores')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-actions">
+        <button class="btn-add" onclick="toggleForm('form-proveedor')">+ Agregar Proveedor</button>
+      </div>
+      <div class="sub-form" id="form-proveedor">
+        <h4>Nuevo Proveedor</h4>
+        <div class="form-row">
+          <div class="form-group"><label>Nombre / Empresa</label><input type="text" id="pv-nombre"/></div>
+          <div class="form-group"><label>Teléfono</label><input type="tel" id="pv-tel"/></div>
+          <div class="form-group"><label>Correo electrónico</label><input type="email" id="pv-email"/></div>
+          <input type="hidden" id="pv-editid"/>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveProveedor()">Guardar</button>
+          <button class="btn-cancel" onclick="toggleForm('form-proveedor')">Cancelar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>Nombre</th><th>Teléfono</th><th>Correo</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-proveedores"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL INVENTARIO ========== -->
+<div class="modal-overlay" id="modal-inventario">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📋 INVENTARIO</h2>
+      <button class="modal-close" onclick="closeModal('modal-inventario')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Alerta de stock bajo inyectada por JS con id="inv-alerta" -->
+      <div class="modal-actions">
+        <!-- Inventario se genera automáticamente al crear productos -->
+      </div>
+      <div class="sub-form" id="form-inventario" style="display:none"></div>
+      <!-- Form edición -->
+      <div class="sub-form" id="form-inventario-edit">
+        <h4>Editar Stock</h4>
+        <input type="hidden" id="inv-editid"/>
+        <div class="form-row">
+          <div class="form-group"><label>Stock Actual</label><input type="number" id="inv-actual-edit" min="0"/></div>
+          <div class="form-group"><label>Stock Mínimo</label><input type="number" id="inv-minimo-edit" min="0"/></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveInventarioEdit()">Guardar</button>
+          <button class="btn-cancel" onclick="document.getElementById('form-inventario-edit').classList.remove('open')">Cancelar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>ID Producto</th><th>Stock Actual</th><th>Stock Mínimo</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-inventario"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL MOVIMIENTOS ========== -->
+<div class="modal-overlay" id="modal-movimientos">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>🔄 MOVIMIENTOS DE INVENTARIO</h2>
+      <button class="modal-close" onclick="closeModal('modal-movimientos')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-actions">
+        <span class="aviso-auto">⚡ Los movimientos se registran automáticamente desde Compras y Ventas</span>
+      </div>
+      <!-- inputs ocultos para compatibilidad con JS -->
+      <div class="sub-form" id="form-movimiento" style="display:none">
+        <input type="hidden" id="mv-fecha"/>
+        <input type="hidden" id="mv-tipo"/>
+        <input type="hidden" id="mv-cantidad"/>
+        <input type="hidden" id="mv-idprod"/>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>ID Producto</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-movimientos"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL COMPRAS ========== -->
+<div class="modal-overlay" id="modal-compras">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📥 COMPRAS</h2>
+      <button class="modal-close" onclick="closeModal('modal-compras')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-actions">
+        <button class="btn-add" onclick="toggleForm('form-compra')">+ Registrar Compra</button>
+      </div>
+      <div class="sub-form" id="form-compra">
+        <h4>Nueva Compra</h4>
+        <div class="form-row">
+          <input type="hidden" id="cp-idprov"/>
+          <input type="hidden" id="cp-idprod"/>
+          <div class="form-group" style="position:relative;">
+            <label>Producto</label>
+            <input type="text" id="cp-prod-search" placeholder="Buscar producto..." autocomplete="off"
+              oninput="filtrarProductosCompra(this.value)"
+              onfocus="filtrarProductosCompra(this.value)"/>
+            <div id="cp-prod-lista" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 3px 3px;z-index:999;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+          <div class="form-group"><label>Cantidad</label><input type="number" id="cp-cantidad" min="1"/></div>
+          <div class="form-group"><label>Precio de Compra ($)</label><input type="number" id="cp-precio" min="0" step="0.01"/></div>
+          <input type="hidden" id="cp-fecha"/>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="saveCompra()">Guardar</button>
+          <button class="btn-cancel" onclick="toggleForm('form-compra')">Cancelar</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>Fecha</th><th>Proveedor</th><th>Productos Comprados</th><th>Total</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-compras"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL REPORTES ========== -->
+<div class="modal-overlay" id="modal-reportes">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>📊 REPORTES</h2>
+      <button class="modal-close" onclick="closeModal('modal-reportes')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-actions">
+        <button class="btn-add" onclick="loadReporteMasVendidos()">📈 Productos Más Vendidos</button>
+        <button class="btn-add" onclick="loadReporteInventario()">📦 Resumen Inventario</button>
+        <button class="btn-add" onclick="loadReporteVentasDia()" style="background:var(--success);">🗓 Ventas del Día</button>
+      </div>
+      <div class="table-wrap">
+        <div id="reporte-titulo">Selecciona un reporte para generarlo y abrirlo como PDF</div>
+        <table id="tabla-reporte" style="display:none;">
+          <thead id="thead-reporte"></thead>
+          <tbody id="tbody-reporte"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL VENTAS ========== -->
+<div class="modal-overlay" id="modal-ventas">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>💰 VENTAS</h2>
+      <button class="modal-close" onclick="closeModal('modal-ventas')">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div class="modal-actions">
+        <button class="btn-add" onclick="toggleForm('form-venta')">+ Agregar al Carrito</button>
+      </div>
+
+      <div class="sub-form" id="form-venta">
+        <h4>Agregar Producto al Carrito</h4>
+        <input type="hidden" id="vt-idprod"/>
+        <input type="hidden" id="vt-prod-nombre"/>
+        <input type="hidden" id="vt-precio-unit"/>
+        <input type="hidden" id="vt-fecha"/>
+        <div class="form-row">
+          <div class="form-group" style="position:relative;">
+            <label>Buscar producto</label>
+            <input type="text" id="vt-prod-search" placeholder="Escribe el nombre del producto..." autocomplete="off"
+              oninput="filtrarProductosVenta(this.value)"
+              onfocus="filtrarProductosVenta(this.value)"/>
+            <div id="vt-prod-lista" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 3px 3px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1);"></div>
+          </div>
+          <div class="form-group">
+            <label>Cantidad</label>
+            <input type="number" id="vt-cantidad" min="1" oninput="calcularTotalVenta()"/>
+          </div>
+          <div class="form-group">
+            <label>Total</label>
+            <div id="vt-total-calc" style="padding:11px 14px;background:#f5f0e8;border:1.5px solid var(--border);border-radius:3px;font-weight:700;color:var(--success);">$0.00</div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn-save" onclick="agregarAlCarrito()">➕ Agregar al Carrito</button>
+          <button class="btn-cancel" onclick="toggleForm('form-venta')">Cancelar</button>
+        </div>
+      </div>
+
+      <div class="seccion-label">🛒 Carrito Actual</div>
+      <div class="table-wrap" style="margin-bottom:12px;">
+        <table>
+          <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Total</th><th></th></tr></thead>
+          <tbody id="tbody-carrito">
+            <tr><td colspan="5" class="empty-state">Carrito vacío</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="text-align:right;margin-bottom:22px;">
+        <button class="btn-finalizar" onclick="finalizarVenta()">🧾 Finalizar Venta y Generar Ticket</button>
+      </div>
+
+      <div class="seccion-label">📋 Historial de Ventas</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>Fecha</th><th>Total</th><th>ID Usuario</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-ventas"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ========== MODAL USUARIOS ========== -->
+<div class="modal-overlay" id="modal-usuarios">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>&#x1F465; USUARIOS</h2>
+      <button class="modal-close" onclick="closeModal('modal-usuarios')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#ID</th><th>Nombre</th><th>Rol</th><th>Acciones</th></tr></thead>
+          <tbody id="tbody-usuarios"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="scripts.js"></script>
+</body>
+</html>
