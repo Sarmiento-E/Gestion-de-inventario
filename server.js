@@ -2,6 +2,7 @@ const express = require('express');
 const mysql = require('mysql2');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const path = require('path'); // Útil para manejar rutas de archivos
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,19 +12,28 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// CONEXIÓN A MYSQL
-// Si 'kevin' no tiene permisos, usa root o dale permisos con:
-// GRANT ALL PRIVILEGES ON tienda_abarrotes.* TO 'kevin'@'localhost'; FLUSH PRIVILEGES;
+// ══════════════════════════════════════════
+// ── CONEXIÓN A BASE DE DATOS (Híbrida) ──
+// ══════════════════════════════════════════
+// Usamos createPool porque es más eficiente para múltiples usuarios
 const db = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Rareclock_33233',            // Pon tu contraseña de root aquí si tiene una
-  database: 'tienda_abarrotes'  // Verifica mayúsculas con: SHOW DATABASES;
+  host: process.env.MYSQLHOST || 'localhost',
+  user: process.env.MYSQLUSER || 'root',
+  password: process.env.MYSQLPASSWORD || 'Rareclock_33233', 
+  database: process.env.MYSQLDATABASE || 'tienda_abarrotes',
+  port: process.env.MYSQLPORT || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
+// Verificación de conexión inicial
 db.getConnection((err, connection) => {
-  if (err) { console.error('❌ Error MySQL:', err); return; }
-  console.log('✅ Conectado a MySQL -> "tienda_abarrotes"');
+  if (err) {
+    console.error('❌ Error al conectar con la base de datos:', err.message);
+    return;
+  }
+  console.log('✅ Conexión exitosa a la base de datos (Railway o Local)');
   connection.release();
 });
 
@@ -455,6 +465,10 @@ app.get('/api/reportes/productos-vendidos', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(results);
   });
+});
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Iniciar servidor
