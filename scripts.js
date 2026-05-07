@@ -1,4 +1,4 @@
-const BASE_URL = 'gestion-de-inventario-production-5064.up.railway.app';
+const BASE_URL = '/api';
 
 async function apiFetch(endpoint, method = 'GET', body = null) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
