@@ -12,6 +12,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Middleware de Seguridad: Solo Administradores
+const soloAdmin = (req, res, next) => {
+  const userRole = req.headers['user-role']; 
+  if (userRole === 'Administrador') {
+    next();
+  } else {
+    res.status(403).json({ error: 'Acceso denegado: Se requieren permisos de Administrador' });
+  }
+};
+
 // ══════════════════════════════════════════
 // ── CONEXIÓN A BASE DE DATOS (Híbrida) ──
 // ══════════════════════════════════════════
@@ -80,6 +90,28 @@ app.post('/api/usuarios/login', (req, res) => {
   });
 });
 
+app.put('/api/usuarios/recuperar', async (req, res) => {
+  const { nombre, nuevaPassword } = req.body;
+  
+  if (!nombre || !nuevaPassword) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(nuevaPassword, 10);
+    db.query('UPDATE usuarios SET password = ? WHERE nombre = ?', 
+      [hashedPassword, nombre], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.affectedRows === 0) {
+          return res.status(404).json({ error: 'El usuario no existe' });
+        }
+        res.json({ mensaje: 'Contraseña actualizada correctamente ✅' });
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al procesar la solicitud' });
+  }
+});
+
 app.put('/api/usuarios/:id', (req, res) => {
   const { id } = req.params;
   const { rol } = req.body;
@@ -123,7 +155,7 @@ app.post('/api/productos', (req, res) => {
     });
 });
 
-app.put('/api/productos/:id', (req, res) => {
+app.put('/api/productos/:id', soloAdmin, (req, res) => {
   const { id } = req.params;
   const { nombre, categoria, precio } = req.body;
   db.query('UPDATE productos SET nombre = ?, categoria = ?, precio = ? WHERE id_producto = ?',
@@ -133,7 +165,7 @@ app.put('/api/productos/:id', (req, res) => {
     });
 });
 
-app.delete('/api/productos/:id', (req, res) => {
+app.delete('/api/productos/:id', soloAdmin, (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM productos WHERE id_producto = ?', [id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -160,7 +192,7 @@ app.post('/api/proveedores', (req, res) => {
     });
 });
 
-app.put('/api/proveedores/:id', (req, res) => {
+app.put('/api/proveedores/:id', soloAdmin, (req, res) => {
   const { id } = req.params;
   const { nombre, telefono, correo } = req.body;
   db.query('UPDATE proveedores SET nombre = ?, telefono = ?, correo = ? WHERE id_proveedor = ?',
@@ -170,7 +202,7 @@ app.put('/api/proveedores/:id', (req, res) => {
     });
 });
 
-app.delete('/api/proveedores/:id', (req, res) => {
+app.delete('/api/proveedores/:id', soloAdmin, (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM proveedores WHERE id_proveedor = ?', [id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -218,7 +250,7 @@ app.post('/api/inventario', (req, res) => {
   });
 });
 
-app.put('/api/inventario/:id', (req, res) => {
+app.put('/api/inventario/:id', soloAdmin, (req, res) => {
   const { id } = req.params;
   const { stock_actual, stock_minimo } = req.body;
   db.query('UPDATE inventario SET stock_actual = ?, stock_minimo = ? WHERE id_inventario = ?',
@@ -228,7 +260,7 @@ app.put('/api/inventario/:id', (req, res) => {
     });
 });
 
-app.delete('/api/inventario/:id', (req, res) => {
+app.delete('/api/inventario/:id', soloAdmin, (req, res) => {
   const { id } = req.params;
   db.query('DELETE FROM inventario WHERE id_inventario = ?', [id], (err) => {
     if (err) return res.status(500).json({ error: err.message });

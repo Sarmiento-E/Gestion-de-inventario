@@ -31,13 +31,11 @@
           <label>Contraseña</label>
           <div class="password-wrapper">
             <input type="password" id="l-password" onkeydown="if(event.key==='Enter') doLogin()"/>
-            <button type="button" class="password-toggle" onclick="togglePassword('l-password', this)">Mostrar</button>
           </div>
         </div>
         <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
-        <div style="margin-top:16px; text-align:center;">
-          <button type="button" class="btn-recover" onclick="doRecoverPassword()">Recuperar contraseña</button>
-        </div>
+        <br><br>
+        <button class="btn-primary" onclick="doRecoverPassword()">Recuperar contraseña</button>
         <div id="login-msg" class="auth-msg"></div>
       </div>
 
@@ -51,10 +49,7 @@
           <label>Rol</label>
           <select id="r-rol">
             <option value="">— Selecciona un rol —</option>
-            <option value="empleado">Empleado</option>
-            <option value="proveedor">Proveedor</option>
-            <option value="supervisor">Supervisor</option>
-            <option value="Editor">Editor</option>
+            <option value="Editor">Empleado</option>
             <option value="Consultor">Consultor</option>
             <option value="Administrador">Administrador</option>
           </select>

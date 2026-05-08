@@ -1,7 +1,13 @@
 const BASE_URL = '/api';
 
 async function apiFetch(endpoint, method = 'GET', body = null) {
-  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  const opts = { 
+    method, 
+    headers: { 
+      'Content-Type': 'application/json',
+      'user-role': currentUser ? currentUser.rol : '' // Enviamos el rol guardado
+    } 
+  };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(BASE_URL + endpoint, opts);
   if (!res.ok) throw new Error(await res.text());
@@ -43,15 +49,9 @@ const MODULES = [
 // Todos los roles posibles en la BD (con variantes de mayúsculas)
 const todosLosModulos = ['productos','proveedores','inventario','movimientos','compras','ventas','reportes','usuarios'];
 const modulosEditor    = ['productos','inventario','movimientos','ventas','reportes','compras'];
-const modulosConsultor = ['productos','inventario','movimientos','ventas','reportes'];
+const modulosConsultor = ["proveedores",'inventario','movimientos','reportes'];
 
 const PERMISOS = {
-  empleado:      ['productos','inventario','movimientos','ventas'],
-  Empleado:      ['productos','inventario','movimientos','ventas'],
-  proveedor:     ['proveedores','compras'],
-  Proveedor:     ['proveedores','compras'],
-  supervisor:    ['productos','proveedores','inventario','movimientos','compras','ventas','reportes'],
-  Supervisor:    ['productos','proveedores','inventario','movimientos','compras','ventas','reportes'],
   admin:         todosLosModulos,
   Admin:         todosLosModulos,
   administrador: todosLosModulos,
@@ -122,6 +122,40 @@ function doLogout() {
   document.getElementById('l-password').value = '';
   document.getElementById('login-msg').className = 'auth-msg';
   switchTab('login');
+}
+
+async function doRecoverPassword() {
+  const nombre = prompt("Introduce tu nombre de usuario para recuperar:");
+  if (!nombre) return;
+
+  const nuevaPassword = prompt("Introduce tu NUEVA contraseña:");
+  if (!nuevaPassword) return;
+
+  const confirmar = prompt("Confirma tu nueva contraseña:");
+  
+  if (nuevaPassword !== confirmar) {
+    alert("Las contraseñas no coinciden.");
+    return;
+  }
+
+  try {
+    const res = await fetch(BASE_URL + '/usuarios/recuperar', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, nuevaPassword })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert(data.mensaje);
+    } else {
+      alert("Error: " + data.error);
+    }
+  } catch (error) {
+    console.error("Error en recuperación:", error);
+    alert("No se pudo conectar con el servidor.");
+  }
 }
 
 function enterApp() {
