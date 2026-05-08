@@ -463,9 +463,50 @@ app.post('/api/movimientos_inventario', (req, res) => {
 
 app.delete('/api/movimientos_inventario/:id', (req, res) => {
   const { id } = req.params;
-  db.query('DELETE FROM movimientos_inventario WHERE id_movimiento = ?', [id], (err) => {
+
+  db.getConnection((err, connection) => {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ mensaje: 'Movimiento eliminado ✅' });
+
+    connection.beginTransaction(err => {
+      if (err) return res.status(500).json({ error: err.message });
+
+      // 1. Obtener los datos del movimiento antes de borrarlo
+      connection.query('SELECT id_producto, cantidad, tipo_movimiento FROM movimientos_inventario WHERE id_movimiento = ?', [id], (err, results) => {
+        if (err || results.length === 0) {
+          return connection.rollback(() => {
+            res.status(404).json({ error: 'Movimiento no encontrado' });
+          });
+        }
+
+        const { id_producto, cantidad, tipo_movimiento } = results[0];
+
+        // 2. Determinar si sumamos o restamos
+        // Si cancelamos una SALIDA (venta), debemos SUMAR al stock.
+        // Si cancelamos una ENTRADA (compra), debemos RESTAR del stock.
+        const ajuste = (tipo_movimiento === 'salida') ? cantidad : -cantidad;
+
+        // 3. Actualizar la tabla de Productos
+        connection.query('UPDATE productos SET stock_global = stock_global + ? WHERE id_producto = ?', [ajuste, id_producto], (err) => {
+          if (err) return connection.rollback(() => res.status(500).json({ error: err.message }));
+
+          // 4. Actualizar la tabla de Inventario
+          connection.query('UPDATE inventario SET stock_actual = stock_actual + ? WHERE id_producto = ?', [ajuste, id_producto], (err) => {
+            if (err) return connection.rollback(() => res.status(500).json({ error: err.message }));
+
+            // 5. Finalmente, borrar el movimiento
+            connection.query('DELETE FROM movimientos_inventario WHERE id_movimiento = ?', [id], (err) => {
+              if (err) return connection.rollback(() => res.status(500).json({ error: err.message }));
+
+              connection.commit(err => {
+                if (err) return connection.rollback(() => res.status(500).json({ error: err.message }));
+                connection.release();
+                res.json({ mensaje: 'Movimiento cancelado y stock restaurado ✅' });
+              });
+            });
+          });
+        });
+      });
+    });
   });
 });
 
