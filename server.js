@@ -445,24 +445,24 @@ app.delete('/api/ventas/:id', (req, res) => {
   db.getConnection((err, connection) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    db.beginTransaction(async (err) => {
+    connection.beginTransaction(async (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
       try {
         // 1. Obtener los detalles de la venta antes de borrar nada
-        const [detalles] = await db.promise().query(
+        const [detalles] = await connection.promise().query(
           'SELECT id_producto, cantidad FROM detalle_venta WHERE id_venta = ?', 
           [id]
         );
 
         // 2. Devolver el stock a cada producto
         for (const item of detalles) {
-          await db.promise().query(
+          await connection.promise().query(
             'UPDATE productos SET stock_global = stock_global + ? WHERE id_producto = ?',
             [item.cantidad, item.id_producto]
           );
           
-          await db.promise().query(
+          await connection.promise().query(
             'UPDATE inventario SET stock_actual = stock_actual + ? WHERE id_producto = ?',
             [item.cantidad, item.id_producto]
           );
@@ -470,23 +470,23 @@ app.delete('/api/ventas/:id', (req, res) => {
 
         // 3. Borrar los movimientos de inventario asociados a esta venta
         // Nota: Asumiendo que guardas el id_venta o una referencia en movimientos
-        await db.promise().query(
+        await connection.promise().query(
           "DELETE FROM movimientos_inventario WHERE tipo_movimiento = 'salida' AND fecha IN (SELECT fecha FROM ventas WHERE id_venta = ?)", 
           [id]
         );
 
         // 4. Borrar la venta (esto borrará detalle_venta por el ON DELETE CASCADE que configuramos antes)
-        await db.promise().query('DELETE FROM ventas WHERE id_venta = ?', [id]);
+        await connection.promise().query('DELETE FROM ventas WHERE id_venta = ?', [id]);
 
-        db.commit(err => {
+        connection.commit(err => {
           if (err) throw err;
-          db.release();
+          connection.release();
           res.json({ mensaje: 'Venta cancelada, stock restaurado e historial de movimientos limpio ✅' });
         });
 
       } catch (error) {
-        db.rollback(() => {
-          db.release();
+        connection.rollback(() => {
+          connection.release();
           res.status(500).json({ error: error.message });
         });
       }
