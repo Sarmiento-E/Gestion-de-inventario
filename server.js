@@ -352,7 +352,7 @@ app.delete('/api/compras/:id', async (req, res) => {
     }
 
     // 3. Borrar la compra (detalle_compra se borra solo por el CASCADE)
-    await db.promise().query('DELETE FROM compras WHERE id_venta = ?', [id]);
+    await db.promise().query('DELETE FROM compras WHERE id_compra = ?', [id]);
 
     res.json({ mensaje: 'Compra eliminada y stock ajustado correctamente' });
   } catch (error) {
