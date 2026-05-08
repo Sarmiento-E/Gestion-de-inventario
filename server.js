@@ -359,7 +359,7 @@ app.delete('/api/compras/:id', async (req, res) => {
       );
     }
     // 3. Borrar los movimientos de inventario asociados a esta compra
-    await connection.promise().query(
+    await db.promise().query(
           "DELETE FROM movimientos_inventario WHERE tipo_movimiento = 'entrada' AND fecha IN (SELECT fecha FROM compras WHERE id_compra = ?)", 
           [id]
         );
@@ -445,24 +445,24 @@ app.delete('/api/ventas/:id', (req, res) => {
   db.getConnection((err, connection) => {
     if (err) return res.status(500).json({ error: err.message });
 
-    connection.beginTransaction(async (err) => {
+    db.beginTransaction(async (err) => {
       if (err) return res.status(500).json({ error: err.message });
 
       try {
         // 1. Obtener los detalles de la venta antes de borrar nada
-        const [detalles] = await connection.promise().query(
+        const [detalles] = await db.promise().query(
           'SELECT id_producto, cantidad FROM detalle_venta WHERE id_venta = ?', 
           [id]
         );
 
         // 2. Devolver el stock a cada producto
         for (const item of detalles) {
-          await connection.promise().query(
+          await db.promise().query(
             'UPDATE productos SET stock_global = stock_global + ? WHERE id_producto = ?',
             [item.cantidad, item.id_producto]
           );
           
-          await connection.promise().query(
+          await db.promise().query(
             'UPDATE inventario SET stock_actual = stock_actual + ? WHERE id_producto = ?',
             [item.cantidad, item.id_producto]
           );
@@ -470,23 +470,23 @@ app.delete('/api/ventas/:id', (req, res) => {
 
         // 3. Borrar los movimientos de inventario asociados a esta venta
         // Nota: Asumiendo que guardas el id_venta o una referencia en movimientos
-        await connection.promise().query(
+        await db.promise().query(
           "DELETE FROM movimientos_inventario WHERE tipo_movimiento = 'salida' AND fecha IN (SELECT fecha FROM ventas WHERE id_venta = ?)", 
           [id]
         );
 
         // 4. Borrar la venta (esto borrará detalle_venta por el ON DELETE CASCADE que configuramos antes)
-        await connection.promise().query('DELETE FROM ventas WHERE id_venta = ?', [id]);
+        await db.promise().query('DELETE FROM ventas WHERE id_venta = ?', [id]);
 
-        connection.commit(err => {
+        db.commit(err => {
           if (err) throw err;
-          connection.release();
+          db.release();
           res.json({ mensaje: 'Venta cancelada, stock restaurado e historial de movimientos limpio ✅' });
         });
 
       } catch (error) {
-        connection.rollback(() => {
-          connection.release();
+        db.rollback(() => {
+          db.release();
           res.status(500).json({ error: error.message });
         });
       }
