@@ -344,7 +344,7 @@ app.delete('/api/compras/:id', async (req, res) => {
       [id]
     );
 
-    // 2. Ajustar stock en AMBAS tablas
+    // 2. Devolver el stock a cada producto
     for (const item of detalles) {
       // Restar de la tabla de PRODUCTOS (Stock Global)
       await db.promise().query(
@@ -358,8 +358,13 @@ app.delete('/api/compras/:id', async (req, res) => {
         [item.cantidad, item.id_producto]
       );
     }
+    // 3. Borrar los movimientos de inventario asociados a esta compra
+    await connection.promise().query(
+          "DELETE FROM movimientos_inventario WHERE tipo_movimiento = 'entrada' AND fecha IN (SELECT fecha FROM compras WHERE id_compra = ?)", 
+          [id]
+        );
 
-    // 3. Borrar la compra
+    // 4. Borrar la compra
     await db.promise().query('DELETE FROM compras WHERE id_compra = ?', [id]);
 
     res.json({ mensaje: 'Compra eliminada y stock sincronizado en ambos módulos ✅' });
