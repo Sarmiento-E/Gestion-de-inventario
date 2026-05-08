@@ -338,24 +338,33 @@ app.delete('/api/compras/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // 1. Obtener lo que se compró para saber cuánto restar
+    // 1. Obtener detalles para saber qué cantidad restar
     const [detalles] = await db.promise().query(
-      'SELECT id_producto, cantidad FROM detalle_compra WHERE id_compra = ?', [id]
+      'SELECT id_producto, cantidad FROM detalle_compra WHERE id_compra = ?', 
+      [id]
     );
 
-    // 2. Restar el stock de los productos
+    // 2. Ajustar stock en AMBAS tablas
     for (const item of detalles) {
+      // Restar de la tabla de PRODUCTOS (Stock Global)
       await db.promise().query(
         'UPDATE productos SET stock_global = stock_global - ? WHERE id_producto = ?',
         [item.cantidad, item.id_producto]
       );
+
+      // Restar de la tabla de INVENTARIO (Stock Actual)
+      await db.promise().query(
+        'UPDATE inventario SET stock_actual = stock_actual - ? WHERE id_producto = ?',
+        [item.cantidad, item.id_producto]
+      );
     }
 
-    // 3. Borrar la compra (detalle_compra se borra solo por el CASCADE)
+    // 3. Borrar la compra
     await db.promise().query('DELETE FROM compras WHERE id_compra = ?', [id]);
 
-    res.json({ mensaje: 'Compra eliminada y stock ajustado correctamente' });
+    res.json({ mensaje: 'Compra eliminada y stock sincronizado en ambos módulos ✅' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
