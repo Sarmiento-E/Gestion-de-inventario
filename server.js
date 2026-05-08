@@ -334,12 +334,30 @@ app.get('/api/detalle_compra', (req, res) => {
   });
 });
 
-app.delete('/api/compras/:id', (req, res) => {
+app.delete('/api/compras/:id', async (req, res) => {
   const { id } = req.params;
-  db.query('DELETE FROM compras WHERE id_compra = ?', [id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ mensaje: 'Compra eliminada ✅' });
-  });
+
+  try {
+    // 1. Obtener lo que se compró para saber cuánto restar
+    const [detalles] = await db.promise().query(
+      'SELECT id_producto, cantidad FROM detalle_compra WHERE id_compra = ?', [id]
+    );
+
+    // 2. Restar el stock de los productos
+    for (const item of detalles) {
+      await db.promise().query(
+        'UPDATE productos SET stock_global = stock_global - ? WHERE id_producto = ?',
+        [item.cantidad, item.id_producto]
+      );
+    }
+
+    // 3. Borrar la compra (detalle_compra se borra solo por el CASCADE)
+    await db.promise().query('DELETE FROM compras WHERE id_venta = ?', [id]);
+
+    res.json({ mensaje: 'Compra eliminada y stock ajustado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // ══════════════════════════════════════════
